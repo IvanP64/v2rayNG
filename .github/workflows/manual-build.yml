@@ -1,17 +1,9 @@
-name: Manual Build APK
-
-on:
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      # Клонируем официальный репозиторий v2rayNG со всеми сабмодулями
-      - name: Clone upstream v2rayNG
+- name: Checkout upstream v2rayNG
         run: |
-          git clone --recurse-submodules https://github.com/2dust/v2rayNG.git .
-          echo "Содержимое папки после клонирования:"
+          # Клонируем во временную папку и переносим содержимое, чтобы избежать конфликтов
+          git clone --recurse-submodules https://github.com/2dust/v2rayNG.git temp_repo
+          cp -r temp_repo/. .
+          rm -rf temp_repo
           ls -la
 
       - name: Set up JDK 17
@@ -25,18 +17,15 @@ jobs:
         with:
           go-version: '1.22'
 
-      # Проверяем права на запуск родного gradlew из репозитория
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Prepare Gradle Wrapper
+        run: |
+          if [ ! -f "gradlew" ]; then
+            echo "gradlew не найден, генерируем..."
+            sudo apt-get update && sudo apt-get install -y gradle
+            gradle wrapper
+          fi
+          chmod +x gradlew
+          ls -l gradlew
 
-      # Собираем APK
       - name: Build APK with Gradle
         run: ./gradlew assembleDebug --no-daemon --stacktrace
-
-      # Сохраняем готовый APK
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: v2rayNG-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
-          retention-days: 7
