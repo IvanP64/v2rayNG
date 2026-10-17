@@ -95,6 +95,7 @@ class MainActivity : HelperBaseComponentActivity() {
         mainViewModel.onAction(MainAction.Initialize)
 
         checkAndRequestPermission(PermissionType.POST_NOTIFICATIONS) {}
+        com.v2ray.ang.service.FailoverManagerService.start(this)
     }
 
     @Composable
