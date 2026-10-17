@@ -7,11 +7,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
+      # Клонируем официальный репозиторий v2rayNG со всеми сабмодулями
+      - name: Clone upstream v2rayNG
+        run: |
+          git clone --recurse-submodules https://github.com/2dust/v2rayNG.git .
+          echo "Содержимое папки после клонирования:"
+          ls -la
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -24,21 +25,15 @@ jobs:
         with:
           go-version: '1.22'
 
-      # Установка современного Gradle 8.7 для поддержки Java 17
-      - name: Setup Gradle Wrapper
-        run: |
-          if [ ! -f "gradlew" ]; then
-            echo "Installing Gradle 8.7..."
-            wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
-            unzip -q gradle-8.7-bin.zip
-            ./gradle-8.7/bin/gradle wrapper --gradle-version 8.7
-            rm -rf gradle-8.7*
-          fi
-          chmod +x gradlew
+      # Проверяем права на запуск родного gradlew из репозитория
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
+      # Собираем APK
       - name: Build APK with Gradle
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
+      # Сохраняем готовый APK
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
