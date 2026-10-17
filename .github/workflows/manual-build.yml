@@ -24,18 +24,16 @@ jobs:
         with:
           go-version: '1.22'
 
-      # Проверка содержимого папки и восстановление gradlew при необходимости
-      - name: Ensure gradlew exists and make executable
+      # Установка современного Gradle 8.7 для поддержки Java 17
+      - name: Setup Gradle Wrapper
         run: |
-          echo "Current directory contents:"
-          ls -la
-          
           if [ ! -f "gradlew" ]; then
-            echo "gradlew not found, generating wrapper using gradle..."
-            sudo apt-get update && sudo apt-get install -y gradle
-            gradle wrapper
+            echo "Installing Gradle 8.7..."
+            wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
+            unzip -q gradle-8.7-bin.zip
+            ./gradle-8.7/bin/gradle wrapper --gradle-version 8.7
+            rm -rf gradle-8.7*
           fi
-          
           chmod +x gradlew
 
       - name: Build APK with Gradle
