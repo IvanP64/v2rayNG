@@ -7,6 +7,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout upstream v2rayNG
+        uses: actions/checkout@v4
+        with:
+          repository: '2dust/v2rayNG'
+          submodules: recursive
+          fetch-depth: 0
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -18,40 +25,17 @@ jobs:
         with:
           go-version: '1.22'
 
-      # Устанавливаем системный Gradle 8.7 для генерации обертки при необходимости
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.7'
-
-      # Клонируем исходный код v2rayNG со всеми подмодулями
-      - name: Clone v2rayNG
+      - name: Grant execute permission for gradlew
         run: |
-          git clone --recurse-submodules https://github.com/2dust/v2rayNG.git app_source
-          cd app_source
-          echo "=== Файлы в репозитории ==="
-          ls -la
-
-      # Проверяем и настраиваем gradlew прямо в папке проекта
-      - name: Prepare Gradle Wrapper
-        working-directory: app_source
-        run: |
-          if [ ! -f "gradlew" ]; then
-            echo "gradlew не найден, генерируем через Gradle 8.7..."
-            gradle wrapper --gradle-version 8.7
-          fi
           chmod +x gradlew
           ls -l gradlew
 
-      # Собираем APK внутри папки проекта
       - name: Build Debug APK
-        working-directory: app_source
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
-      # Загружаем готовый артефакт
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: v2rayNG-debug-apk
-          path: app_source/app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/*.apk
           retention-days: 7
