@@ -24,23 +24,15 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Configure Gradle Wrapper 8.7
-        run: |
-          mkdir -p gradle/wrapper
-          cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-bin.zip
-          networkTimeout=10000
-          validateDistributionUrl=true
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          EOF
+      # Устанавливаем официальный Gradle 8.7 и генерируем полноценный wrapper со всеми JAR-файлами
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
 
-          # Скачиваем официальный скрипт gradlew, если он отсутствует
-          if [ ! -f "gradlew" ]; then
-            curl -sLo gradlew https://raw.githubusercontent.com/gradle/gradle/v8.7.0/gradlew
-          fi
+      - name: Generate complete Gradle wrapper
+        run: |
+          gradle wrapper --gradle-version 8.7
           chmod +x gradlew
 
       - name: Build Debug APK
