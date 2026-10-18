@@ -27,21 +27,43 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.23'
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26b
+
+      # Сборка Go-ядра (libv2ray.aar) через gomobile
+      - name: Build libv2ray core
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          gomobile init
+
+          mkdir -p V2rayNG/app/libs
+
+          if [ -d "AndroidLibXrayLite" ]; then
+            cd AndroidLibXrayLite
+            export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
+            gomobile bind -v -androidapi 21 -target android/arm,android/arm64,android/386,android/amd64 -ldflags="-s -w" -o ../V2rayNG/app/libs/libv2ray.aar .
+            cd ..
+          fi
+
+          ls -lh V2rayNG/app/libs/
 
       - name: Grant execute permission for gradlew
         working-directory: V2rayNG
-        run: |
-          chmod +x gradlew
-          ls -l gradlew
+        run: chmod +x gradlew
 
+      # Собираем F-Droid Debug вариант (не требует Google Services и релизных подписей)
       - name: Build Debug APK
         working-directory: V2rayNG
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleFdroidDebug --no-daemon --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: v2rayNG-debug-apk
-          path: V2rayNG/app/build/outputs/apk/debug/*.apk
+          path: V2rayNG/app/build/outputs/apk/**/*.apk
           retention-days: 7
