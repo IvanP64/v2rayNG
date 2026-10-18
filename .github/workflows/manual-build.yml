@@ -24,39 +24,31 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-
-      - name: Setup Android NDK
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r26b
-
-      # Сборка Go-ядра (libv2ray.aar) через gomobile
-      - name: Build libv2ray core
+      # Скачиваем готовый предсобранный libv2ray.aar из официального репозитория ядра
+      - name: Download prebuilt libv2ray core
         run: |
-          go install golang.org/x/mobile/cmd/gomobile@latest
-          go install golang.org/x/mobile/cmd/gobind@latest
-          gomobile init
-
           mkdir -p V2rayNG/app/libs
-
-          if [ -d "AndroidLibXrayLite" ]; then
-            cd AndroidLibXrayLite
-            export ANDROID_NDK_HOME=$ANDROID_NDK_ROOT
-            gomobile bind -v -androidapi 21 -target android/arm,android/arm64,android/386,android/amd64 -ldflags="-s -w" -o ../V2rayNG/app/libs/libv2ray.aar .
-            cd ..
+          echo "Загрузка готового ядра libv2ray.aar..."
+          
+          # Получаем последний релизный AAR напрямую из официального репозитория AndroidLibXrayLite
+          AAR_URL=$(curl -s https://api.github.com/repos/2dust/AndroidLibXrayLite/releases/latest | grep "browser_download_url.*\.aar" | cut -d '"' -f 4 | head -n 1)
+          
+          if [ -z "$AAR_URL" ]; then
+            # Запасная прямая ссылка, если GitHub API отдаст лимит запросов
+            AAR_URL="https://github.com/2dust/AndroidLibXrayLite/releases/latest/download/libv2ray.aar"
           fi
-
-          ls -lh V2rayNG/app/libs/
+          
+          echo "Скачивание из: $AAR_URL"
+          curl -L -o V2rayNG/app/libs/libv2ray.aar "$AAR_URL"
+          
+          # Проверяем, что файл действительно скачался и имеет размер больше 5 МБ
+          ls -lh V2rayNG/app/libs/libv2ray.aar
 
       - name: Grant execute permission for gradlew
         working-directory: V2rayNG
         run: chmod +x gradlew
 
-      # Собираем F-Droid Debug вариант (не требует Google Services и релизных подписей)
+      # Собираем F-Droid Debug вариант
       - name: Build Debug APK
         working-directory: V2rayNG
         run: ./gradlew assembleFdroidDebug --no-daemon --stacktrace
