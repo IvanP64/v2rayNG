@@ -24,11 +24,22 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Grant permissions to gradlew
+      - name: Configure Gradle Wrapper 8.7
         run: |
+          mkdir -p gradle/wrapper
+          cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-bin.zip
+          networkTimeout=10000
+          validateDistributionUrl=true
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+
+          # Скачиваем официальный скрипт gradlew, если он отсутствует
           if [ ! -f "gradlew" ]; then
-            sudo apt-get update && sudo apt-get install -y gradle
-            gradle wrapper
+            curl -sLo gradlew https://raw.githubusercontent.com/gradle/gradle/v8.7.0/gradlew
           fi
           chmod +x gradlew
 
