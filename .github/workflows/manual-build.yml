@@ -18,31 +18,40 @@ jobs:
         with:
           go-version: '1.22'
 
-      # Скачиваем оригинальный проект v2rayNG со всеми файлами
-      - name: Clone official v2rayNG source code
+      # Устанавливаем системный Gradle 8.7 для генерации обертки при необходимости
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.7'
+
+      # Клонируем исходный код v2rayNG со всеми подмодулями
+      - name: Clone v2rayNG
         run: |
-          git clone --recurse-submodules https://github.com/2dust/v2rayNG.git src_project
-          # Перемещаем всё содержимое в текущую рабочую директорию
-          shopt -s dotglob
-          mv src_project/* .
-          rm -rf src_project
-          
-          echo "=== Проверка наличия файлов проекта ==="
+          git clone --recurse-submodules https://github.com/2dust/v2rayNG.git app_source
+          cd app_source
+          echo "=== Файлы в репозитории ==="
           ls -la
 
-      # Даем права на встроенный gradlew из репозитория v2rayNG
-      - name: Prepare gradlew
+      # Проверяем и настраиваем gradlew прямо в папке проекта
+      - name: Prepare Gradle Wrapper
+        working-directory: app_source
         run: |
+          if [ ! -f "gradlew" ]; then
+            echo "gradlew не найден, генерируем через Gradle 8.7..."
+            gradle wrapper --gradle-version 8.7
+          fi
           chmod +x gradlew
+          ls -l gradlew
 
-      # Собираем APK
-      - name: Build APK with Gradle
+      # Собираем APK внутри папки проекта
+      - name: Build Debug APK
+        working-directory: app_source
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
-      # Выгружаем полученный APK в артефакты
+      # Загружаем готовый артефакт
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: v2rayNG-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: app_source/app/build/outputs/apk/debug/*.apk
           retention-days: 7
